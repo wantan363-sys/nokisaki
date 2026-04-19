@@ -36,7 +36,8 @@ export async function POST() {
       if (qty > 0) lines += `・${product.name}：${qty}個 × ${product.price.toLocaleString()}円 = ${subtotal.toLocaleString()}円\n`
     }
 
-    const msg = `🎊 ${month}月の月末精算レポート！！\n${contractor.name}さん、今月もお疲れ様でした！！\n\n${lines || '今月の販売はありませんでした\n'}\n合計：${total.toLocaleString()}円 🙌\n\n月末にお渡しします！\n今月もありがとうございました！！`
+    const reportUrl = `https://nokisaki.vercel.app/report/${year}-${String(month).padStart(2, '0')}/${contractor.id}`
+    const msg = `🎊 ${month}月の月末精算レポート！！\n${contractor.name}さん、今月もお疲れ様でした！！\n\n${lines || '今月の販売はありませんでした\n'}\n合計：${total.toLocaleString()}円 🙌\n\n📄 売上報告書はこちら！\n${reportUrl}\n\n月末にお渡しします！\n今月もありがとうございました！！`
     await sendLineMessage(contractor.line_group_id, msg)
   }
 
