@@ -1,3 +1,4 @@
+import { supabaseAdmin } from '@/lib/supabase'
 import { NextResponse } from 'next/server'
 
 export async function POST(req: Request) {
@@ -5,22 +6,10 @@ export async function POST(req: Request) {
   const events = body.events ?? []
 
   for (const event of events) {
-    if (event.type !== 'message') continue
     const source = event.source
-    const groupId = source?.groupId ?? source?.roomId ?? source?.userId ?? '不明'
-    const token = process.env.LINE_CHANNEL_ACCESS_TOKEN!
-    const res = await fetch('https://api.line.me/v2/bot/message/reply', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        replyToken: event.replyToken,
-        messages: [{ type: 'text', text: `グループID：${groupId}` }],
-      }),
-    })
-    console.log('LINE reply status:', res.status, await res.text())
+    if (source?.groupId) {
+      await supabaseAdmin.from('group_log').upsert({ group_id: source.groupId }, { onConflict: 'group_id' })
+    }
   }
 
   return NextResponse.json({ ok: true })
