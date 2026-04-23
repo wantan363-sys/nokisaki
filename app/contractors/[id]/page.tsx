@@ -92,63 +92,43 @@ export default function ContractorDetail() {
       )}
 
       {contractor.products.map(p => (
-        <div key={p.id} className={`bg-white rounded-xl shadow p-4 border-l-4 ${p.stock <= 2 ? 'border-red-400' : 'border-green-400'}`}>
-          {/* 商品名・在庫 */}
-          <div className="flex justify-between items-start mb-3">
+        <div key={p.id} className={`bg-white rounded-xl shadow px-4 py-3 border-l-4 ${p.stock <= 2 ? 'border-red-400' : 'border-green-400'}`}>
+          {/* 1行目：商品名・在庫・売れたボタン */}
+          <div className="flex justify-between items-center">
             <div>
-              <p className="font-bold text-gray-800">{p.name}</p>
-              <p className="text-sm text-gray-500">{p.price.toLocaleString()}円</p>
-              <p className={`text-sm font-bold mt-1 ${p.stock <= 2 ? 'text-red-500' : 'text-green-600'}`}>
-                在庫：{p.stock}個 {p.stock <= 2 && '⚠️'}
-              </p>
+              <span className="font-bold text-gray-800 text-sm">{p.name}</span>
+              <span className="text-xs text-gray-400 ml-2">{p.price.toLocaleString()}円</span>
+              <span className={`text-xs font-bold ml-2 ${p.stock <= 2 ? 'text-red-500' : 'text-green-600'}`}>
+                在庫{p.stock}個{p.stock <= 2 && '⚠️'}
+              </span>
             </div>
+            <button
+              onClick={() => sell(p.id)}
+              disabled={selling === p.id || p.stock === 0}
+              className="bg-orange-500 text-white px-4 py-2 rounded-xl font-bold text-sm disabled:opacity-40 active:scale-95 ml-2 shrink-0"
+            >
+              {selling === p.id ? '...' : p.stock === 0 ? '売切れ' : '売れた！！'}
+            </button>
           </div>
 
-          {/* ボタン横並び */}
-          <div className="grid grid-cols-4 gap-2">
-            {/* 売れた */}
-            <div className="flex flex-col items-center gap-1">
-              <button
-                onClick={() => sell(p.id)}
-                disabled={selling === p.id || p.stock === 0}
-                className="w-full bg-orange-500 text-white py-3 rounded-xl font-bold text-sm disabled:opacity-40 active:scale-95"
-              >
-                {selling === p.id ? '...' : p.stock === 0 ? '売切れ' : '売れた！！'}
-              </button>
-            </div>
-
-            {/* 補充 */}
-            <div className="flex flex-col items-center gap-1">
-              <input type="number" min="1" placeholder="個数" value={restockQty[p.id] || ''}
-                onChange={e => setRestockQty(prev => ({ ...prev, [p.id]: e.target.value }))}
-                className="border rounded-lg px-1 py-1 w-full text-sm text-center" />
-              <button onClick={() => restock(p.id)} disabled={restocking === p.id}
-                className="w-full bg-blue-500 text-white py-2 rounded-lg text-xs font-bold disabled:opacity-50">
-                {restocking === p.id ? '...' : '📦 補充'}
-              </button>
-            </div>
-
-            {/* 半値買取 */}
-            <div className="flex flex-col items-center gap-1">
-              <input type="number" min="1" placeholder="個数" value={buyoutQty[p.id] || ''}
-                onChange={e => setBuyoutQty(prev => ({ ...prev, [p.id]: e.target.value }))}
-                className="border rounded-lg px-1 py-1 w-full text-sm text-center" />
-              <button onClick={() => purchase(p.id, 'half_buyout')} disabled={purchasing === p.id + 'half_buyout'}
-                className="w-full bg-yellow-500 text-white py-2 rounded-lg text-xs font-bold disabled:opacity-50">
-                {purchasing === p.id + 'half_buyout' ? '...' : '🏷️ 半値'}
-              </button>
-            </div>
-
-            {/* 仕入れ */}
-            <div className="flex flex-col items-center gap-1">
-              <input type="number" min="1" placeholder="個数" value={procureQty[p.id] || ''}
-                onChange={e => setProcureQty(prev => ({ ...prev, [p.id]: e.target.value }))}
-                className="border rounded-lg px-1 py-1 w-full text-sm text-center" />
-              <button onClick={() => purchase(p.id, 'procurement')} disabled={purchasing === p.id + 'procurement'}
-                className="w-full bg-purple-500 text-white py-2 rounded-lg text-xs font-bold disabled:opacity-50">
-                {purchasing === p.id + 'procurement' ? '...' : '🛒 仕入れ'}
-              </button>
-            </div>
+          {/* 2行目：補充・半値・仕入れ */}
+          <div className="flex gap-2 mt-2">
+            {[
+              { label: '📦補充', color: 'bg-blue-500', input: restockQty, setInput: setRestockQty, action: () => restock(p.id), loading: restocking === p.id },
+              { label: '🏷️半値', color: 'bg-yellow-500', input: buyoutQty, setInput: setBuyoutQty, action: () => purchase(p.id, 'half_buyout'), loading: purchasing === p.id + 'half_buyout' },
+              { label: '🛒仕入', color: 'bg-purple-500', input: procureQty, setInput: setProcureQty, action: () => purchase(p.id, 'procurement'), loading: purchasing === p.id + 'procurement' },
+            ].map(({ label, color, input, setInput, action, loading }) => (
+              <div key={label} className="flex items-center gap-1 flex-1">
+                <input type="number" min="1" placeholder="0"
+                  value={input[p.id] || ''}
+                  onChange={e => setInput(prev => ({ ...prev, [p.id]: e.target.value }))}
+                  className="border rounded-lg w-10 py-1 text-xs text-center shrink-0" />
+                <button onClick={action} disabled={loading}
+                  className={`${color} text-white py-1 px-2 rounded-lg text-xs font-bold disabled:opacity-50 flex-1`}>
+                  {loading ? '...' : label}
+                </button>
+              </div>
+            ))}
           </div>
         </div>
       ))}
