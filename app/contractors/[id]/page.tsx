@@ -10,6 +10,8 @@ export default function ContractorDetail() {
   const { id } = useParams()
   const [contractor, setContractor] = useState<Contractor | null>(null)
   const [selling, setSelling] = useState<string | null>(null)
+  const [restocking, setRestocking] = useState<string | null>(null)
+  const [restockQty, setRestockQty] = useState<{ [id: string]: string }>({})
 
   async function load() {
     const res = await fetch('/api/contractors')
@@ -27,10 +29,22 @@ export default function ContractorDetail() {
       body: JSON.stringify({ product_id: productId }),
     })
     const data = await res.json()
-    if (!res.ok) {
-      alert(data.error)
-    }
+    if (!res.ok) alert(data.error)
     setSelling(null)
+    await load()
+  }
+
+  async function restock(productId: string) {
+    const qty = parseInt(restockQty[productId] || '0')
+    if (!qty || qty <= 0) return alert('追加数を入力してください')
+    setRestocking(productId)
+    await fetch(`/api/products/${productId}/restock`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ quantity: qty }),
+    })
+    setRestockQty(prev => ({ ...prev, [productId]: '' }))
+    setRestocking(null)
     await load()
   }
 
@@ -46,10 +60,7 @@ export default function ContractorDetail() {
             <p className="text-xs text-orange-500">⚠️ LINEグループIDが未設定です</p>
           )}
         </div>
-        <Link
-          href={`/contractors/${id}/products/new`}
-          className="bg-green-500 text-white px-3 py-2 rounded-lg text-sm font-bold"
-        >
+        <Link href={`/contractors/${id}/products/new`} className="bg-green-500 text-white px-3 py-2 rounded-lg text-sm font-bold">
           ＋ 商品追加
         </Link>
       </div>
@@ -74,6 +85,27 @@ export default function ContractorDetail() {
               className="bg-orange-500 text-white px-4 py-3 rounded-xl font-bold text-lg disabled:opacity-40 active:scale-95"
             >
               {selling === p.id ? '...' : p.stock === 0 ? '売切れ' : '売れた！！'}
+            </button>
+          </div>
+
+          {/* 在庫追加エリア */}
+          <div className="mt-3 pt-3 border-t border-gray-100 flex items-center gap-2">
+            <span className="text-sm text-gray-500">補充：</span>
+            <input
+              type="number"
+              min="1"
+              placeholder="個数"
+              value={restockQty[p.id] || ''}
+              onChange={e => setRestockQty(prev => ({ ...prev, [p.id]: e.target.value }))}
+              className="border rounded-lg px-2 py-1 w-20 text-sm text-center"
+            />
+            <span className="text-sm text-gray-500">個</span>
+            <button
+              onClick={() => restock(p.id)}
+              disabled={restocking === p.id}
+              className="bg-blue-500 text-white px-3 py-1 rounded-lg text-sm font-bold disabled:opacity-50"
+            >
+              {restocking === p.id ? '...' : '＋ 追加'}
             </button>
           </div>
         </div>
