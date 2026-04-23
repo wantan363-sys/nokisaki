@@ -1,8 +1,10 @@
 'use client'
 import { useEffect, useState } from 'react'
 
+type GroupEntry = { group_id: string; assigned_to: string | null }
+
 export default function Setup() {
-  const [groups, setGroups] = useState<{ group_id: string }[]>([])
+  const [groups, setGroups] = useState<GroupEntry[]>([])
   const [loading, setLoading] = useState(true)
 
   async function load() {
@@ -29,8 +31,22 @@ export default function Setup() {
       )}
 
       {groups.map(g => (
-        <div key={g.group_id} className="bg-gray-50 rounded-lg p-3 break-all">
-          <p className="text-xs text-gray-500 mb-1">グループID</p>
+        <div
+          key={g.group_id}
+          className={`rounded-lg p-3 break-all border ${g.assigned_to ? 'bg-green-50 border-green-300' : 'bg-gray-50 border-gray-200'}`}
+        >
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-xs text-gray-500">グループID</p>
+            {g.assigned_to ? (
+              <span className="text-xs bg-green-500 text-white px-2 py-0.5 rounded-full font-bold">
+                ✅ {g.assigned_to}さん割り当て済み
+              </span>
+            ) : (
+              <span className="text-xs bg-gray-300 text-gray-600 px-2 py-0.5 rounded-full font-bold">
+                未割り当て
+              </span>
+            )}
+          </div>
           <p className="font-mono text-sm text-gray-800">{g.group_id}</p>
           <button
             onClick={() => navigator.clipboard.writeText(g.group_id)}
