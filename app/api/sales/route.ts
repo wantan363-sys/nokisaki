@@ -3,7 +3,7 @@ import { sendLineMessage } from '@/lib/line'
 import { NextResponse } from 'next/server'
 
 export async function POST(req: Request) {
-  const { product_id } = await req.json()
+  const { product_id, quantity = 1 } = await req.json()
 
   const { data: product, error: pErr } = await supabaseAdmin
     .from('products')
@@ -12,22 +12,20 @@ export async function POST(req: Request) {
     .single()
 
   if (pErr || !product) return NextResponse.json({ error: '商品が見つかりません' }, { status: 404 })
-  if (product.stock <= 0) return NextResponse.json({ error: '在庫がありません' }, { status: 400 })
+  if (product.stock < quantity) return NextResponse.json({ error: `在庫が足りません（残り${product.stock}個）` }, { status: 400 })
 
-  const newStock = product.stock - 1
+  const newStock = product.stock - quantity
 
   const { error: updateErr } = await supabaseAdmin
-    .from('products')
-    .update({ stock: newStock })
-    .eq('id', product_id)
+    .from('products').update({ stock: newStock }).eq('id', product_id)
 
   if (updateErr) return NextResponse.json({ error: updateErr }, { status: 500 })
 
-  await supabaseAdmin.from('sales').insert({ product_id, quantity: 1 })
+  await supabaseAdmin.from('sales').insert({ product_id, quantity })
 
   const contractor = product.contractors as { name: string; line_group_id: string | null }
   if (contractor.line_group_id) {
-    const soldMsg = `🎉 売れました！！\n${contractor.name}さんの「${product.name}」が売れましたよ～！\n\n残り在庫：${newStock}個`
+    const soldMsg = `🎉 売れました！！\n${contractor.name}さんの「${product.name}」が${quantity}個売れましたよ～！\n\n残り在庫：${newStock}個`
     await sendLineMessage(contractor.line_group_id, soldMsg)
 
     if (newStock <= 2) {

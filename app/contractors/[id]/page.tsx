@@ -21,6 +21,7 @@ export default function ContractorDetail() {
   const [selling, setSelling] = useState<string | null>(null)
   const [restocking, setRestocking] = useState<string | null>(null)
   const [purchasing, setPurchasing] = useState<string | null>(null)
+  const [sellQty, setSellQty] = useState<{ [id: string]: string }>({})
   const [restockQty, setRestockQty] = useState<{ [id: string]: string }>({})
   const [buyoutQty, setBuyoutQty] = useState<{ [id: string]: string }>({})
   const [procureQty, setProcureQty] = useState<{ [id: string]: string }>({})
@@ -36,14 +37,17 @@ export default function ContractorDetail() {
   useEffect(() => { load() }, [])
 
   async function sell(productId: string) {
+    const qty = parseInt(sellQty[productId] || '1')
+    if (qty <= 0) return alert('数量を入力してください')
     setSelling(productId)
     const res = await fetch('/api/sales', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ product_id: productId }),
+      body: JSON.stringify({ product_id: productId, quantity: qty }),
     })
     const data = await res.json()
     if (!res.ok) alert(data.error)
+    setSellQty(prev => ({ ...prev, [productId]: '' }))
     setSelling(null)
     await load()
   }
@@ -123,13 +127,21 @@ export default function ContractorDetail() {
                 🗑️
               </button>
             </div>
-            <button
-              onClick={() => sell(p.id)}
-              disabled={selling === p.id || p.stock === 0}
-              className="bg-orange-500 text-white px-4 py-2 rounded-xl font-bold text-sm disabled:opacity-40 active:scale-95 ml-2 shrink-0"
-            >
-              {selling === p.id ? '...' : p.stock === 0 ? '売切れ' : '売れた！！'}
-            </button>
+            <div className="flex items-center gap-1 ml-2 shrink-0">
+              <input
+                type="number" min="1" placeholder="1"
+                value={sellQty[p.id] || ''}
+                onChange={e => setSellQty(prev => ({ ...prev, [p.id]: e.target.value }))}
+                className="border rounded-lg w-10 py-2 text-sm text-center"
+              />
+              <button
+                onClick={() => sell(p.id)}
+                disabled={selling === p.id || p.stock === 0}
+                className="bg-orange-500 text-white px-3 py-2 rounded-xl font-bold text-sm disabled:opacity-40 active:scale-95"
+              >
+                {selling === p.id ? '...' : p.stock === 0 ? '売切れ' : '売れた！！'}
+              </button>
+            </div>
           </div>
 
           {/* 2行目：補充・半値・仕入れ */}
