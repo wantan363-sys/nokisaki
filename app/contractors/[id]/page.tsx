@@ -18,6 +18,9 @@ export default function ContractorDetail() {
   const { id } = useParams()
   const [contractor, setContractor] = useState<Contractor | null>(null)
   const [history, setHistory] = useState<HistoryEntry[]>([])
+  const [editingName, setEditingName] = useState(false)
+  const [nameInput, setNameInput] = useState('')
+  const [saving, setSaving] = useState(false)
   const [selling, setSelling] = useState<string | null>(null)
   const [restocking, setRestocking] = useState<string | null>(null)
   const [purchasing, setPurchasing] = useState<string | null>(null)
@@ -35,6 +38,19 @@ export default function ContractorDetail() {
   }
 
   useEffect(() => { load() }, [])
+
+  async function saveName() {
+    if (!nameInput.trim()) return
+    setSaving(true)
+    await fetch(`/api/contractors/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: nameInput.trim() }),
+    })
+    setSaving(false)
+    setEditingName(false)
+    await load()
+  }
 
   async function sell(productId: string) {
     const qty = parseInt(sellQty[productId] || '1')
@@ -92,7 +108,31 @@ export default function ContractorDetail() {
       <div className="flex justify-between items-center">
         <div>
           <Link href="/" className="text-green-600 text-sm">← 一覧に戻る</Link>
-          <h1 className="text-xl font-bold text-gray-800 mt-1">{contractor.name}さん</h1>
+          {editingName ? (
+            <div className="flex items-center gap-2 mt-1">
+              <input
+                autoFocus
+                value={nameInput}
+                onChange={e => setNameInput(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') saveName(); if (e.key === 'Escape') setEditingName(false) }}
+                className="border rounded-lg px-2 py-1 text-sm font-bold text-gray-800 w-36"
+              />
+              <button onClick={saveName} disabled={saving} className="text-xs bg-green-500 text-white px-2 py-1 rounded-lg disabled:opacity-50">
+                {saving ? '...' : '保存'}
+              </button>
+              <button onClick={() => setEditingName(false)} className="text-xs text-gray-400">キャンセル</button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 mt-1">
+              <h1 className="text-xl font-bold text-gray-800">{contractor.name}さん</h1>
+              <button
+                onClick={() => { setNameInput(contractor.name); setEditingName(true) }}
+                className="text-xs text-gray-400 border border-gray-300 px-2 py-0.5 rounded-lg"
+              >
+                ✏️ 編集
+              </button>
+            </div>
+          )}
           {!contractor.line_group_id && (
             <p className="text-xs text-orange-500">⚠️ LINEグループIDが未設定です</p>
           )}
