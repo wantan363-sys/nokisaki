@@ -112,6 +112,16 @@ export default function ContractorDetail() {
               <span className={`text-xs font-bold ml-2 ${p.stock <= 2 ? 'text-red-500' : 'text-green-600'}`}>
                 在庫{p.stock}個{p.stock <= 2 && '⚠️'}
               </span>
+              <button
+                onClick={async () => {
+                  if (!confirm(`「${p.name}」を削除しますか？`)) return
+                  await fetch(`/api/products/${p.id}`, { method: 'DELETE' })
+                  await load()
+                }}
+                className="text-xs text-red-400 ml-2"
+              >
+                🗑️
+              </button>
             </div>
             <button
               onClick={() => sell(p.id)}
