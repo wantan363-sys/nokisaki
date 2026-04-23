@@ -11,7 +11,10 @@ export default function ContractorDetail() {
   const [contractor, setContractor] = useState<Contractor | null>(null)
   const [selling, setSelling] = useState<string | null>(null)
   const [restocking, setRestocking] = useState<string | null>(null)
+  const [purchasing, setPurchasing] = useState<string | null>(null)
   const [restockQty, setRestockQty] = useState<{ [id: string]: string }>({})
+  const [buyoutQty, setBuyoutQty] = useState<{ [id: string]: string }>({})
+  const [procureQty, setProcureQty] = useState<{ [id: string]: string }>({})
 
   async function load() {
     const res = await fetch('/api/contractors')
@@ -48,6 +51,25 @@ export default function ContractorDetail() {
     await load()
   }
 
+  async function purchase(productId: string, type: 'half_buyout' | 'procurement') {
+    const qty = parseInt(type === 'half_buyout' ? (buyoutQty[productId] || '0') : (procureQty[productId] || '0'))
+    if (!qty || qty <= 0) return alert('個数を入力してください')
+    const label = type === 'half_buyout' ? '半値買取' : '仕入れ'
+    if (!confirm(`「${label}」${qty}個でよろしいですか？`)) return
+    setPurchasing(productId + type)
+    const res = await fetch('/api/purchases', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ product_id: productId, quantity: qty, type }),
+    })
+    const data = await res.json()
+    if (!res.ok) alert(data.error)
+    if (type === 'half_buyout') setBuyoutQty(prev => ({ ...prev, [productId]: '' }))
+    else setProcureQty(prev => ({ ...prev, [productId]: '' }))
+    setPurchasing(null)
+    await load()
+  }
+
   if (!contractor) return <p className="text-center text-gray-400 py-10">読み込み中...</p>
 
   return (
@@ -71,6 +93,7 @@ export default function ContractorDetail() {
 
       {contractor.products.map(p => (
         <div key={p.id} className={`bg-white rounded-xl shadow p-4 border-l-4 ${p.stock <= 2 ? 'border-red-400' : 'border-green-400'}`}>
+          {/* 商品情報 + 売れたボタン */}
           <div className="flex justify-between items-center">
             <div>
               <p className="font-bold text-gray-800">{p.name}</p>
@@ -88,25 +111,45 @@ export default function ContractorDetail() {
             </button>
           </div>
 
-          {/* 在庫追加エリア */}
-          <div className="mt-3 pt-3 border-t border-gray-100 flex items-center gap-2">
-            <span className="text-sm text-gray-500">補充：</span>
-            <input
-              type="number"
-              min="1"
-              placeholder="個数"
-              value={restockQty[p.id] || ''}
-              onChange={e => setRestockQty(prev => ({ ...prev, [p.id]: e.target.value }))}
-              className="border rounded-lg px-2 py-1 w-20 text-sm text-center"
-            />
-            <span className="text-sm text-gray-500">個</span>
-            <button
-              onClick={() => restock(p.id)}
-              disabled={restocking === p.id}
-              className="bg-blue-500 text-white px-3 py-1 rounded-lg text-sm font-bold disabled:opacity-50"
-            >
-              {restocking === p.id ? '...' : '＋ 追加'}
-            </button>
+          <div className="mt-3 pt-3 border-t border-gray-100 space-y-2">
+            {/* 補充 */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-500 w-16">📦 補充</span>
+              <input type="number" min="1" placeholder="個数" value={restockQty[p.id] || ''}
+                onChange={e => setRestockQty(prev => ({ ...prev, [p.id]: e.target.value }))}
+                className="border rounded-lg px-2 py-1 w-16 text-sm text-center" />
+              <span className="text-xs text-gray-500">個</span>
+              <button onClick={() => restock(p.id)} disabled={restocking === p.id}
+                className="bg-blue-500 text-white px-3 py-1 rounded-lg text-xs font-bold disabled:opacity-50">
+                {restocking === p.id ? '...' : '＋ 追加'}
+              </button>
+            </div>
+
+            {/* 半値買取 */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-500 w-16">🏷️ 半値</span>
+              <input type="number" min="1" placeholder="個数" value={buyoutQty[p.id] || ''}
+                onChange={e => setBuyoutQty(prev => ({ ...prev, [p.id]: e.target.value }))}
+                className="border rounded-lg px-2 py-1 w-16 text-sm text-center" />
+              <span className="text-xs text-gray-500">個</span>
+              <button onClick={() => purchase(p.id, 'half_buyout')} disabled={purchasing === p.id + 'half_buyout'}
+                className="bg-yellow-500 text-white px-3 py-1 rounded-lg text-xs font-bold disabled:opacity-50">
+                {purchasing === p.id + 'half_buyout' ? '...' : `半値買取 (${Math.floor(p.price / 2).toLocaleString()}円)`}
+              </button>
+            </div>
+
+            {/* 仕入れ */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-500 w-16">🛒 仕入れ</span>
+              <input type="number" min="1" placeholder="個数" value={procureQty[p.id] || ''}
+                onChange={e => setProcureQty(prev => ({ ...prev, [p.id]: e.target.value }))}
+                className="border rounded-lg px-2 py-1 w-16 text-sm text-center" />
+              <span className="text-xs text-gray-500">個</span>
+              <button onClick={() => purchase(p.id, 'procurement')} disabled={purchasing === p.id + 'procurement'}
+                className="bg-purple-500 text-white px-3 py-1 rounded-lg text-xs font-bold disabled:opacity-50">
+                {purchasing === p.id + 'procurement' ? '...' : `仕入れ (${p.price.toLocaleString()}円)`}
+              </button>
+            </div>
           </div>
         </div>
       ))}
