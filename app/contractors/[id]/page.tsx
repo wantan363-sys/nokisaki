@@ -5,10 +5,19 @@ import { useParams } from 'next/navigation'
 
 type Product = { id: string; name: string; price: number; stock: number }
 type Contractor = { id: string; name: string; line_group_id: string | null; products: Product[] }
+type HistoryEntry = { date: string; label: string; name: string; qty: number; amount: number | null }
+
+const labelStyle: { [key: string]: string } = {
+  '補充': 'bg-blue-100 text-blue-700',
+  '販売': 'bg-orange-100 text-orange-700',
+  '半値買取': 'bg-yellow-100 text-yellow-700',
+  '仕入れ': 'bg-purple-100 text-purple-700',
+}
 
 export default function ContractorDetail() {
   const { id } = useParams()
   const [contractor, setContractor] = useState<Contractor | null>(null)
+  const [history, setHistory] = useState<HistoryEntry[]>([])
   const [selling, setSelling] = useState<string | null>(null)
   const [restocking, setRestocking] = useState<string | null>(null)
   const [purchasing, setPurchasing] = useState<string | null>(null)
@@ -20,6 +29,8 @@ export default function ContractorDetail() {
     const res = await fetch('/api/contractors')
     const data: Contractor[] = await res.json()
     setContractor(data.find(c => c.id === id) ?? null)
+    const hRes = await fetch(`/api/contractors/${id}/history`)
+    setHistory(await hRes.json())
   }
 
   useEffect(() => { load() }, [])
@@ -132,6 +143,28 @@ export default function ContractorDetail() {
           </div>
         </div>
       ))}
+
+      {/* 今月の履歴 */}
+      {history.length > 0 && (
+        <div className="bg-white rounded-xl shadow p-4">
+          <h2 className="font-bold text-gray-700 mb-3">今月の記録</h2>
+          <div className="space-y-2">
+            {history.map((h, i) => (
+              <div key={i} className="flex items-center justify-between text-sm">
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-400 w-10">{h.date}</span>
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${labelStyle[h.label] ?? 'bg-gray-100 text-gray-600'}`}>{h.label}</span>
+                  <span className="text-gray-700">{h.name}</span>
+                  <span className="text-gray-500">{h.qty}個</span>
+                </div>
+                <span className="text-gray-700 font-bold">
+                  {h.amount !== null ? `¥${h.amount.toLocaleString()}` : '—'}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -25,6 +25,7 @@ export async function POST() {
     let buyoutTotal = 0
     let procureLines = ''
     let procureTotal = 0
+    let restockLines = ''
 
     for (const product of products) {
       // 通常売上
@@ -71,6 +72,19 @@ export async function POST() {
         procureTotal += subtotal
         procureLines += `・${product.name}：${pr.quantity}個 × ${pr.unit_price.toLocaleString()}円 = ${subtotal.toLocaleString()}円\n`
       }
+
+      // 補充
+      const { data: additions } = await supabaseAdmin
+        .from('stock_additions')
+        .select('quantity, added_at')
+        .eq('product_id', product.id)
+        .gte('added_at', start)
+        .lt('added_at', end)
+
+      for (const a of additions ?? []) {
+        const d = new Date(a.added_at)
+        restockLines += `・${d.getMonth() + 1}/${d.getDate()} ${product.name}：${a.quantity}個\n`
+      }
     }
 
     const grandTotal = salesTotal + buyoutTotal + procureTotal
@@ -78,10 +92,11 @@ export async function POST() {
 
     let msg = `🎊 ${month}月の月末精算レポート！！\n${contractor.name}さん、今月もお疲れ様でした！！\n\n`
 
+    if (restockLines) msg += `【補充】\n${restockLines}\n`
     if (salesLines) msg += `【販売】\n${salesLines}\n`
     if (buyoutLines) msg += `【半値買取】\n${buyoutLines}\n`
     if (procureLines) msg += `【仕入れ】\n${procureLines}\n`
-    if (!salesLines && !buyoutLines && !procureLines) msg += '今月の取引はありませんでした\n\n'
+    if (!salesLines && !buyoutLines && !procureLines && !restockLines) msg += '今月の取引はありませんでした\n\n'
 
     msg += `💰 合計お支払い：${grandTotal.toLocaleString()}円 🙌\n\n`
     msg += `📄 売上報告書はこちら！\n${reportUrl}\n\n`

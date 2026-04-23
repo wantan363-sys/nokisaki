@@ -37,6 +37,15 @@ export async function GET(_req: Request, { params }: { params: Promise<{ month: 
       const label = p.type === 'half_buyout' ? '【半値買取】' : '【仕入れ】'
       rows.push({ date: `${d.getMonth() + 1}/${d.getDate()}`, name: `${label}${product.name}`, qty: p.quantity, price: p.unit_price })
     }
+
+    // 補充
+    const { data: additions } = await supabaseAdmin
+      .from('stock_additions').select('quantity, added_at')
+      .eq('product_id', product.id).gte('added_at', start).lt('added_at', end).order('added_at')
+    for (const a of additions ?? []) {
+      const d = new Date(a.added_at)
+      rows.push({ date: `${d.getMonth() + 1}/${d.getDate()}`, name: `【補充】${product.name}`, qty: a.quantity, price: 0 })
+    }
   }
 
   rows.sort((a, b) => a.date.localeCompare(b.date))
