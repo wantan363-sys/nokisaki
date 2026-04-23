@@ -7,7 +7,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   const { data: product } = await supabaseAdmin
     .from('products')
-    .select('stock, name, contractors(name, line_group_id)')
+    .select('stock, name, contractor_id')
     .eq('id', id)
     .single()
 
@@ -18,7 +18,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   await supabaseAdmin.from('products').update({ stock: newStock }).eq('id', id)
   await supabaseAdmin.from('stock_additions').insert({ product_id: id, quantity })
 
-  const contractor = product.contractors as unknown as { name: string; line_group_id: string | null }
+  const { data: contractor } = await supabaseAdmin
+    .from('contractors')
+    .select('name, line_group_id')
+    .eq('id', product.contractor_id)
+    .single()
+
   if (contractor?.line_group_id) {
     const token = process.env.LINE_CHANNEL_ACCESS_TOKEN!
     await fetch('https://api.line.me/v2/bot/message/push', {
