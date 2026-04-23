@@ -18,7 +18,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   await supabaseAdmin.from('products').update({ stock: newStock }).eq('id', id)
   await supabaseAdmin.from('stock_additions').insert({ product_id: id, quantity })
 
-  const contractor = product.contractors as { name: string; line_group_id: string | null }
+  const contractor = product.contractors as unknown as { name: string; line_group_id: string | null }
   if (contractor?.line_group_id) {
     const token = process.env.LINE_CHANNEL_ACCESS_TOKEN!
     await fetch('https://api.line.me/v2/bot/message/push', {
