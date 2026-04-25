@@ -29,18 +29,19 @@ export async function POST() {
 
     for (const product of products) {
       // 通常売上
-      const { count: salesCount } = await supabaseAdmin
+      const { data: salesRecords } = await supabaseAdmin
         .from('sales')
-        .select('*', { count: 'exact', head: true })
+        .select('quantity, unit_price')
         .eq('product_id', product.id)
         .gte('sold_at', start)
         .lt('sold_at', end)
 
-      const salesQty = salesCount ?? 0
-      if (salesQty > 0) {
-        const subtotal = salesQty * product.price
+      for (const s of salesRecords ?? []) {
+        const price = s.unit_price ?? product.price
+        const subtotal = s.quantity * price
         salesTotal += subtotal
-        salesLines += `・${product.name}：${salesQty}個 × ${product.price.toLocaleString()}円 = ${subtotal.toLocaleString()}円\n`
+        const priceNote = price !== product.price ? `※値引 ${price.toLocaleString()}円` : `${price.toLocaleString()}円`
+        salesLines += `・${product.name}：${s.quantity}個 × ${priceNote} = ${subtotal.toLocaleString()}円\n`
       }
 
       // 半値買取

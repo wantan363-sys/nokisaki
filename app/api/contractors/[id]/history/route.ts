@@ -25,11 +25,12 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     }
 
     const { data: sales } = await supabaseAdmin
-      .from('sales').select('quantity, sold_at')
+      .from('sales').select('quantity, sold_at, unit_price')
       .eq('product_id', product.id).gte('sold_at', start).lt('sold_at', end)
     for (const s of sales ?? []) {
       const d = new Date(s.sold_at)
-      entries.push({ date: `${d.getMonth() + 1}/${d.getDate()}`, label: '販売', name: product.name, qty: s.quantity, amount: s.quantity * product.price })
+      const price = s.unit_price ?? product.price
+      entries.push({ date: `${d.getMonth() + 1}/${d.getDate()}`, label: '販売', name: product.name, qty: s.quantity, amount: s.quantity * price })
     }
 
     const { data: purchases } = await supabaseAdmin

@@ -25,6 +25,7 @@ export default function ContractorDetail() {
   const [restocking, setRestocking] = useState<string | null>(null)
   const [purchasing, setPurchasing] = useState<string | null>(null)
   const [sellQty, setSellQty] = useState<{ [id: string]: string }>({})
+  const [sellPrice, setSellPrice] = useState<{ [id: string]: string }>({})
   const [restockQty, setRestockQty] = useState<{ [id: string]: string }>({})
   const [buyoutQty, setBuyoutQty] = useState<{ [id: string]: string }>({})
   const [procureQty, setProcureQty] = useState<{ [id: string]: string }>({})
@@ -55,15 +56,17 @@ export default function ContractorDetail() {
   async function sell(productId: string) {
     const qty = parseInt(sellQty[productId] || '1')
     if (qty <= 0) return alert('数量を入力してください')
+    const customPrice = sellPrice[productId] ? parseInt(sellPrice[productId]) : undefined
     setSelling(productId)
     const res = await fetch('/api/sales', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ product_id: productId, quantity: qty }),
+      body: JSON.stringify({ product_id: productId, quantity: qty, unit_price: customPrice }),
     })
     const data = await res.json()
     if (!res.ok) alert(data.error)
     setSellQty(prev => ({ ...prev, [productId]: '' }))
+    setSellPrice(prev => ({ ...prev, [productId]: '' }))
     setSelling(null)
     await load()
   }
@@ -167,20 +170,32 @@ export default function ContractorDetail() {
                 🗑️
               </button>
             </div>
-            <div className="flex items-center gap-1 ml-2 shrink-0">
-              <input
-                type="number" min="1" placeholder="1"
-                value={sellQty[p.id] || ''}
-                onChange={e => setSellQty(prev => ({ ...prev, [p.id]: e.target.value }))}
-                className="border rounded-lg w-10 py-2 text-sm text-center"
-              />
-              <button
-                onClick={() => sell(p.id)}
-                disabled={selling === p.id || p.stock === 0}
-                className="bg-orange-500 text-white px-3 py-2 rounded-xl font-bold text-sm disabled:opacity-40 active:scale-95"
-              >
-                {selling === p.id ? '...' : p.stock === 0 ? '売切れ' : '売れた！！'}
-              </button>
+            <div className="flex flex-col items-end gap-1 ml-2 shrink-0">
+              <div className="flex items-center gap-1">
+                <input
+                  type="number" min="1" placeholder="1"
+                  value={sellQty[p.id] || ''}
+                  onChange={e => setSellQty(prev => ({ ...prev, [p.id]: e.target.value }))}
+                  className="border rounded-lg w-10 py-2 text-sm text-center"
+                />
+                <button
+                  onClick={() => sell(p.id)}
+                  disabled={selling === p.id || p.stock === 0}
+                  className="bg-orange-500 text-white px-3 py-2 rounded-xl font-bold text-sm disabled:opacity-40 active:scale-95"
+                >
+                  {selling === p.id ? '...' : p.stock === 0 ? '売切れ' : '売れた！！'}
+                </button>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-xs text-gray-400">値引価格</span>
+                <input
+                  type="number" min="0" placeholder={String(p.price)}
+                  value={sellPrice[p.id] || ''}
+                  onChange={e => setSellPrice(prev => ({ ...prev, [p.id]: e.target.value }))}
+                  className="border rounded-lg w-16 py-1 text-xs text-center text-red-500"
+                />
+                <span className="text-xs text-gray-400">円</span>
+              </div>
             </div>
           </div>
 
