@@ -1,4 +1,5 @@
 import { supabaseAdmin } from '@/lib/supabase'
+import { sendLineMessage } from '@/lib/line'
 import { NextResponse } from 'next/server'
 
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -13,18 +14,27 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
 
   if (sErr || !sale) return NextResponse.json({ error: '売上が見つかりません' }, { status: 404 })
 
-  // 在庫を元に戻す
+  // 商品・契約者情報を取得
   const { data: product } = await supabaseAdmin
     .from('products')
-    .select('stock')
+    .select('name, stock, contractors(name, line_group_id)')
     .eq('id', sale.product_id)
     .single()
 
+  // 在庫を元に戻す
   if (product) {
+    const newStock = product.stock + sale.quantity
     await supabaseAdmin
       .from('products')
-      .update({ stock: product.stock + sale.quantity })
+      .update({ stock: newStock })
       .eq('id', sale.product_id)
+
+    // LINE通知
+    const contractor = (product.contractors as { name: string; line_group_id: string | null }[])[0] ?? null
+    if (contractor?.line_group_id) {
+      const msg = `🙏 先ほどの販売記録を取り消しました！\n「${product.name}」${sale.quantity}個の記録を誤って登録してしまいました。すみません！！\n\n在庫を${newStock}個に戻しました。`
+      await sendLineMessage(contractor.line_group_id, msg)
+    }
   }
 
   // 売上レコードを削除
