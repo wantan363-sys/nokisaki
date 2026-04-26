@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation'
 
 type Product = { id: string; name: string; price: number; stock: number }
 type Contractor = { id: string; name: string; line_group_id: string | null; products: Product[] }
-type HistoryEntry = { date: string; label: string; name: string; qty: number; amount: number | null }
+type HistoryEntry = { id: string | null; date: string; label: string; name: string; qty: number; amount: number | null }
 
 const labelStyle: { [key: string]: string } = {
   '補充': 'bg-blue-100 text-blue-700',
@@ -228,15 +228,29 @@ export default function ContractorDetail() {
           <div className="space-y-2">
             {history.map((h, i) => (
               <div key={i} className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-gray-400 w-10">{h.date}</span>
                   <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${labelStyle[h.label] ?? 'bg-gray-100 text-gray-600'}`}>{h.label}</span>
                   <span className="text-gray-700">{h.name}</span>
                   <span className="text-gray-500">{h.qty}個</span>
                 </div>
-                <span className="text-gray-700 font-bold">
-                  {h.amount !== null ? `¥${h.amount.toLocaleString()}` : '—'}
-                </span>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-gray-700 font-bold">
+                    {h.amount !== null ? `¥${h.amount.toLocaleString()}` : '—'}
+                  </span>
+                  {h.label === '販売' && h.id && (
+                    <button
+                      onClick={async () => {
+                        if (!confirm(`「${h.name}」${h.qty}個の販売を取り消しますか？\n在庫が元に戻ります。`)) return
+                        await fetch(`/api/sales/${h.id}`, { method: 'DELETE' })
+                        await load()
+                      }}
+                      className="text-xs text-red-400 border border-red-300 px-2 py-0.5 rounded-lg"
+                    >
+                      取り消し
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
           </div>
