@@ -35,7 +35,16 @@ export default function NewContractor() {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">LINE グループID</label>
+          <div className="flex justify-between items-center mb-1">
+            <label className="block text-sm font-medium text-gray-700">LINE グループID</label>
+            <a
+              href="/setup"
+              target="_blank"
+              className="text-xs bg-green-50 text-green-600 border border-green-400 px-3 py-1 rounded-full font-bold"
+            >
+              🔍 グループIDを確認
+            </a>
+          </div>
           <input
             type="text"
             value={groupId}
