@@ -2,10 +2,11 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { sendLineMessage } from '@/lib/line'
 import { NextResponse } from 'next/server'
 
-export async function POST() {
+export async function POST(req: Request) {
+  const body = await req.json().catch(() => ({}))
   const now = new Date()
-  const year = now.getFullYear()
-  const month = now.getMonth() + 1
+  const year: number = body.year ?? now.getFullYear()
+  const month: number = body.month ?? (now.getMonth() + 1)
   const start = new Date(year, month - 1, 1).toISOString()
   const end = new Date(year, month, 1).toISOString()
 

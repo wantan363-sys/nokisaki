@@ -8,35 +8,63 @@ type Contractor = { id: string; name: string; line_group_id: string | null; prod
 export default function Home() {
   const [contractors, setContractors] = useState<Contractor[]>([])
   const [sending, setSending] = useState(false)
+  const now = new Date()
+  const [reportYear, setReportYear] = useState(now.getFullYear())
+  const [reportMonth, setReportMonth] = useState(now.getMonth() + 1)
 
   useEffect(() => {
     fetch('/api/contractors').then(r => r.json()).then(setContractors)
   }, [])
 
   async function sendMonthlyReport() {
-    if (!confirm('月末レポートを全グループに送信しますか？')) return
+    if (!confirm(`${reportYear}年${reportMonth}月のレポートを全グループに送信しますか？`)) return
     setSending(true)
-    await fetch('/api/monthly-report', { method: 'POST' })
+    await fetch('/api/monthly-report', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ year: reportYear, month: reportMonth }),
+    })
     setSending(false)
-    alert('送信しました！！')
+    alert(`${reportMonth}月のレポートを送信しました！！`)
   }
 
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h1 className="text-xl font-bold text-gray-800">契約者一覧</h1>
-        <div className="flex gap-2">
-          <button
-            onClick={sendMonthlyReport}
-            disabled={sending}
-            className="bg-blue-500 text-white px-3 py-2 rounded-lg text-sm font-bold disabled:opacity-50"
-          >
-            {sending ? '送信中...' : '月末レポート送信'}
-          </button>
-          <Link href="/contractors/new" className="bg-green-500 text-white px-3 py-2 rounded-lg text-sm font-bold">
-            ＋ 契約者追加
-          </Link>
-        </div>
+        <Link href="/contractors/new" className="bg-green-500 text-white px-3 py-2 rounded-lg text-sm font-bold">
+          ＋ 契約者追加
+        </Link>
+      </div>
+
+      {/* 月末レポート送信 */}
+      <div className="bg-white rounded-xl shadow px-4 py-3 flex items-center gap-2">
+        <span className="text-sm text-gray-600 font-bold shrink-0">月末レポート</span>
+        <select
+          value={reportYear}
+          onChange={e => setReportYear(Number(e.target.value))}
+          className="border rounded-lg px-2 py-1 text-sm text-gray-700"
+        >
+          {[now.getFullYear() - 1, now.getFullYear()].map(y => (
+            <option key={y} value={y}>{y}年</option>
+          ))}
+        </select>
+        <select
+          value={reportMonth}
+          onChange={e => setReportMonth(Number(e.target.value))}
+          className="border rounded-lg px-2 py-1 text-sm text-gray-700"
+        >
+          {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
+            <option key={m} value={m}>{m}月</option>
+          ))}
+        </select>
+        <button
+          onClick={sendMonthlyReport}
+          disabled={sending}
+          className="bg-blue-500 text-white px-3 py-1.5 rounded-lg text-sm font-bold disabled:opacity-50 ml-auto shrink-0"
+        >
+          {sending ? '送信中...' : '送信'}
+        </button>
       </div>
 
       {contractors.length === 0 && (
