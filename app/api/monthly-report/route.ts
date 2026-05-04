@@ -89,6 +89,9 @@ export async function POST(req: Request) {
       }
     }
 
+    // 取引がない場合はスキップ
+    if (!salesLines && !buyoutLines && !procureLines && !restockLines) continue
+
     const grandTotal = salesTotal + buyoutTotal + procureTotal
     const reportUrl = `https://nokisaki.vercel.app/report/${year}-${String(month).padStart(2, '0')}/${contractor.id}`
 
@@ -98,7 +101,6 @@ export async function POST(req: Request) {
     if (salesLines) msg += `【販売】\n${salesLines}\n`
     if (buyoutLines) msg += `【半値買取】\n${buyoutLines}\n`
     if (procureLines) msg += `【仕入れ】\n${procureLines}\n`
-    if (!salesLines && !buyoutLines && !procureLines && !restockLines) msg += '今月の取引はありませんでした\n\n'
 
     msg += `💰 合計お支払い：${grandTotal.toLocaleString()}円 🙌\n\n`
     msg += `📄 売上報告書はこちら！\n${reportUrl}\n\n`
