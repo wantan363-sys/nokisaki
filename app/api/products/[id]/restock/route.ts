@@ -18,23 +18,5 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   await supabaseAdmin.from('products').update({ stock: newStock }).eq('id', id)
   await supabaseAdmin.from('stock_additions').insert({ product_id: id, quantity })
 
-  const { data: contractor } = await supabaseAdmin
-    .from('contractors')
-    .select('name, line_group_id')
-    .eq('id', product.contractor_id)
-    .single()
-
-  if (contractor?.line_group_id) {
-    const token = process.env.LINE_CHANNEL_ACCESS_TOKEN!
-    await fetch('https://api.line.me/v2/bot/message/push', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({
-        to: contractor.line_group_id,
-        messages: [{ type: 'text', text: `📦 在庫を追加しました！！\n「${product.name}」に${quantity}個追加！\n現在の在庫：${newStock}個 🙌` }],
-      }),
-    })
-  }
-
   return NextResponse.json({ stock: newStock })
 }
