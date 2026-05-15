@@ -12,16 +12,16 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     .select('id, name, price')
     .eq('contractor_id', id)
 
-  type Entry = { id: string | null; date: string; label: string; name: string; qty: number; amount: number | null }
+  type Entry = { id: string; recordType: string; date: string; label: string; name: string; qty: number; amount: number | null }
   const entries: Entry[] = []
 
   for (const product of products ?? []) {
     const { data: additions } = await supabaseAdmin
-      .from('stock_additions').select('quantity, added_at')
+      .from('stock_additions').select('id, quantity, added_at')
       .eq('product_id', product.id).gte('added_at', start).lt('added_at', end)
     for (const a of additions ?? []) {
       const d = new Date(a.added_at)
-      entries.push({ id: null, date: `${d.getMonth() + 1}/${d.getDate()}`, label: '補充', name: product.name, qty: a.quantity, amount: null })
+      entries.push({ id: a.id, recordType: 'stock_addition', date: `${d.getMonth() + 1}/${d.getDate()}`, label: '補充', name: product.name, qty: a.quantity, amount: null })
     }
 
     const { data: sales } = await supabaseAdmin
@@ -30,15 +30,15 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     for (const s of sales ?? []) {
       const d = new Date(s.sold_at)
       const price = s.unit_price ?? product.price
-      entries.push({ id: s.id, date: `${d.getMonth() + 1}/${d.getDate()}`, label: '販売', name: product.name, qty: s.quantity, amount: s.quantity * price })
+      entries.push({ id: s.id, recordType: 'sale', date: `${d.getMonth() + 1}/${d.getDate()}`, label: '販売', name: product.name, qty: s.quantity, amount: s.quantity * price })
     }
 
     const { data: purchases } = await supabaseAdmin
-      .from('purchases').select('quantity, unit_price, type, purchased_at')
+      .from('purchases').select('id, quantity, unit_price, type, purchased_at')
       .eq('product_id', product.id).gte('purchased_at', start).lt('purchased_at', end)
     for (const p of purchases ?? []) {
       const d = new Date(p.purchased_at)
-      entries.push({ id: null, date: `${d.getMonth() + 1}/${d.getDate()}`, label: p.type === 'half_buyout' ? '半値買取' : '仕入れ', name: product.name, qty: p.quantity, amount: p.quantity * p.unit_price })
+      entries.push({ id: p.id, recordType: 'purchase', date: `${d.getMonth() + 1}/${d.getDate()}`, label: p.type === 'half_buyout' ? '半値買取' : '仕入れ', name: product.name, qty: p.quantity, amount: p.quantity * p.unit_price })
     }
   }
 
