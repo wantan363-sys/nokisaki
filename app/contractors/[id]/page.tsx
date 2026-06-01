@@ -286,6 +286,12 @@ export default function ContractorDetail() {
                 </div>
               </div>
             ))}
+            <div className="border-t pt-2 mt-2 flex justify-between items-center">
+              <span className="text-sm font-bold text-gray-600">合計</span>
+              <span className="text-lg font-bold text-green-600">
+                ¥{history.reduce((sum, h) => sum + (h.amount ?? 0), 0).toLocaleString()}
+              </span>
+            </div>
           </div>
         )}
       </div>
