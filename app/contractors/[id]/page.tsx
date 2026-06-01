@@ -21,6 +21,8 @@ export default function ContractorDetail() {
   const [history, setHistory] = useState<HistoryEntry[]>([])
   const [historyYear, setHistoryYear] = useState(now.getFullYear())
   const [historyMonth, setHistoryMonth] = useState(now.getMonth() + 1)
+  const [settled, setSettled] = useState(false)
+  const [pickedUp, setPickedUp] = useState(false)
   const [editingName, setEditingName] = useState(false)
   const [nameInput, setNameInput] = useState('')
   const [saving, setSaving] = useState(false)
@@ -37,8 +39,24 @@ export default function ContractorDetail() {
     const res = await fetch('/api/contractors')
     const data: Contractor[] = await res.json()
     setContractor(data.find(c => c.id === id) ?? null)
-    const hRes = await fetch(`/api/contractors/${id}/history?year=${year}&month=${month}`)
+    const [hRes, sRes] = await Promise.all([
+      fetch(`/api/contractors/${id}/history?year=${year}&month=${month}`),
+      fetch(`/api/contractors/${id}/settlement?year=${year}&month=${month}`),
+    ])
     setHistory(await hRes.json())
+    const s = await sRes.json()
+    setSettled(s.settled)
+    setPickedUp(s.picked_up)
+  }
+
+  async function toggleField(field: 'settled' | 'picked_up', value: boolean) {
+    if (field === 'settled') setSettled(value)
+    else setPickedUp(value)
+    await fetch(`/api/contractors/${id}/settlement`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ year: historyYear, month: historyMonth, field, value }),
+    })
   }
 
   useEffect(() => { load() }, [])
@@ -291,6 +309,30 @@ export default function ContractorDetail() {
               <span className="text-lg font-bold text-green-600">
                 ¥{history.reduce((sum, h) => sum + (h.amount ?? 0), 0).toLocaleString()}
               </span>
+            </div>
+            <div className="border-t pt-3 mt-2 flex gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={settled}
+                  onChange={e => toggleField('settled', e.target.checked)}
+                  className="w-4 h-4 accent-green-500"
+                />
+                <span className={`text-sm font-bold ${settled ? 'text-green-600' : 'text-gray-400'}`}>
+                  {settled ? '✅ 精算済み' : '精算済み'}
+                </span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={pickedUp}
+                  onChange={e => toggleField('picked_up', e.target.checked)}
+                  className="w-4 h-4 accent-blue-500"
+                />
+                <span className={`text-sm font-bold ${pickedUp ? 'text-blue-600' : 'text-gray-400'}`}>
+                  {pickedUp ? '✅ 引き取り済み' : '引き取り済み'}
+                </span>
+              </label>
             </div>
           </div>
         )}
