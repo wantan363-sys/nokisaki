@@ -1,11 +1,14 @@
 import { supabaseAdmin } from '@/lib/supabase'
 import { NextResponse } from 'next/server'
 
-export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
+  const url = new URL(req.url)
   const now = new Date()
-  const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
-  const end = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString()
+  const year = parseInt(url.searchParams.get('year') ?? String(now.getFullYear()))
+  const month = parseInt(url.searchParams.get('month') ?? String(now.getMonth() + 1))
+  const start = new Date(year, month - 1, 1).toISOString()
+  const end = new Date(year, month, 1).toISOString()
 
   const { data: products } = await supabaseAdmin
     .from('products')

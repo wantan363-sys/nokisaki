@@ -16,8 +16,11 @@ const labelStyle: { [key: string]: string } = {
 
 export default function ContractorDetail() {
   const { id } = useParams()
+  const now = new Date()
   const [contractor, setContractor] = useState<Contractor | null>(null)
   const [history, setHistory] = useState<HistoryEntry[]>([])
+  const [historyYear, setHistoryYear] = useState(now.getFullYear())
+  const [historyMonth, setHistoryMonth] = useState(now.getMonth() + 1)
   const [editingName, setEditingName] = useState(false)
   const [nameInput, setNameInput] = useState('')
   const [saving, setSaving] = useState(false)
@@ -30,15 +33,21 @@ export default function ContractorDetail() {
   const [buyoutQty, setBuyoutQty] = useState<{ [id: string]: string }>({})
   const [procureQty, setProcureQty] = useState<{ [id: string]: string }>({})
 
-  async function load() {
+  async function load(year = historyYear, month = historyMonth) {
     const res = await fetch('/api/contractors')
     const data: Contractor[] = await res.json()
     setContractor(data.find(c => c.id === id) ?? null)
-    const hRes = await fetch(`/api/contractors/${id}/history`)
+    const hRes = await fetch(`/api/contractors/${id}/history?year=${year}&month=${month}`)
     setHistory(await hRes.json())
   }
 
   useEffect(() => { load() }, [])
+
+  async function changeMonth(year: number, month: number) {
+    setHistoryYear(year)
+    setHistoryMonth(month)
+    await load(year, month)
+  }
 
   async function saveName() {
     if (!nameInput.trim()) return
@@ -221,10 +230,32 @@ export default function ContractorDetail() {
         </div>
       ))}
 
-      {/* 今月の履歴 */}
-      {history.length > 0 && (
-        <div className="bg-white rounded-xl shadow p-4">
-          <h2 className="font-bold text-gray-700 mb-3">今月の記録</h2>
+      {/* 履歴 */}
+      <div className="bg-white rounded-xl shadow p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <h2 className="font-bold text-gray-700 shrink-0">売上記録</h2>
+          <select
+            value={historyYear}
+            onChange={e => changeMonth(Number(e.target.value), historyMonth)}
+            className="border rounded-lg px-2 py-1 text-sm text-gray-700"
+          >
+            {[now.getFullYear() - 1, now.getFullYear()].map(y => (
+              <option key={y} value={y}>{y}年</option>
+            ))}
+          </select>
+          <select
+            value={historyMonth}
+            onChange={e => changeMonth(historyYear, Number(e.target.value))}
+            className="border rounded-lg px-2 py-1 text-sm text-gray-700"
+          >
+            {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
+              <option key={m} value={m}>{m}月</option>
+            ))}
+          </select>
+        </div>
+        {history.length === 0 ? (
+          <p className="text-gray-400 text-sm text-center py-4">この月の記録はありません</p>
+        ) : (
           <div className="space-y-2">
             {history.map((h, i) => (
               <div key={i} className="flex items-center justify-between text-sm">
@@ -256,8 +287,8 @@ export default function ContractorDetail() {
               </div>
             ))}
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }
