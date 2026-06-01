@@ -23,6 +23,8 @@ export default function ContractorDetail() {
   const [historyMonth, setHistoryMonth] = useState(now.getMonth() + 1)
   const [settled, setSettled] = useState(false)
   const [pickedUp, setPickedUp] = useState(false)
+  const [pickedUpQty, setPickedUpQty] = useState(0)
+  const [pickedUpQtyInput, setPickedUpQtyInput] = useState('')
   const [editingName, setEditingName] = useState(false)
   const [nameInput, setNameInput] = useState('')
   const [saving, setSaving] = useState(false)
@@ -47,6 +49,8 @@ export default function ContractorDetail() {
     const s = await sRes.json()
     setSettled(s.settled)
     setPickedUp(s.picked_up)
+    setPickedUpQty(s.picked_up_quantity ?? 0)
+    setPickedUpQtyInput(s.picked_up_quantity ? String(s.picked_up_quantity) : '')
   }
 
   async function toggleField(field: 'settled' | 'picked_up', value: boolean) {
@@ -56,6 +60,15 @@ export default function ContractorDetail() {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ year: historyYear, month: historyMonth, field, value }),
+    })
+  }
+
+  async function savePickedUpQty(qty: number) {
+    setPickedUpQty(qty)
+    await fetch(`/api/contractors/${id}/settlement`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ year: historyYear, month: historyMonth, field: 'picked_up_quantity', value: qty }),
     })
   }
 
@@ -310,7 +323,7 @@ export default function ContractorDetail() {
                 ¥{history.reduce((sum, h) => sum + (h.amount ?? 0), 0).toLocaleString()}
               </span>
             </div>
-            <div className="border-t pt-3 mt-2 flex gap-4">
+            <div className="border-t pt-3 mt-2 flex flex-wrap gap-4">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
@@ -322,17 +335,30 @@ export default function ContractorDetail() {
                   {settled ? '✅ 精算済み' : '精算済み'}
                 </span>
               </label>
-              <label className="flex items-center gap-2 cursor-pointer">
+              <div className="flex items-center gap-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={pickedUp}
+                    onChange={e => toggleField('picked_up', e.target.checked)}
+                    className="w-4 h-4 accent-blue-500"
+                  />
+                  <span className={`text-sm font-bold ${pickedUp ? 'text-blue-600' : 'text-gray-400'}`}>
+                    {pickedUp ? '✅ 引き取り' : '引き取り'}
+                  </span>
+                </label>
                 <input
-                  type="checkbox"
-                  checked={pickedUp}
-                  onChange={e => toggleField('picked_up', e.target.checked)}
-                  className="w-4 h-4 accent-blue-500"
+                  type="number" min="0" placeholder="0"
+                  value={pickedUpQtyInput}
+                  onChange={e => setPickedUpQtyInput(e.target.value)}
+                  onBlur={() => savePickedUpQty(parseInt(pickedUpQtyInput || '0'))}
+                  className="border rounded-lg w-14 py-1 text-sm text-center"
                 />
-                <span className={`text-sm font-bold ${pickedUp ? 'text-blue-600' : 'text-gray-400'}`}>
-                  {pickedUp ? '✅ 引き取り済み' : '引き取り済み'}
-                </span>
-              </label>
+                <span className="text-sm text-gray-400">個</span>
+                {pickedUpQty > 0 && (
+                  <span className="text-xs text-blue-500 font-bold">{pickedUpQty}個引き取り済み</span>
+                )}
+              </div>
             </div>
           </div>
         )}
