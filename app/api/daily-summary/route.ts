@@ -2,7 +2,15 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { sendLineMessage } from '@/lib/line'
 import { NextResponse } from 'next/server'
 
+export async function GET() {
+  return handler()
+}
+
 export async function POST() {
+  return handler()
+}
+
+async function handler() {
   // JSTの今日の範囲（UTC+9）
   const now = new Date()
   const jstOffset = 9 * 60 * 60 * 1000
