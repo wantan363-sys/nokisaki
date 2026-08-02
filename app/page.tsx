@@ -73,15 +73,18 @@ export default function Home() {
 
       {contractors.map(c => {
         const totalStock = c.products.reduce((s, p) => s + p.stock, 0)
-        const lowStock = c.products.some(p => p.stock <= 2)
+        const noStock = c.products.length > 0 && totalStock === 0
+        const lowStock = !noStock && c.products.some(p => p.stock <= 2)
+        const borderColor = noStock ? 'border-gray-300' : lowStock ? 'border-red-400' : 'border-green-400'
         return (
           <Link key={c.id} href={`/contractors/${c.id}`}>
-            <div className={`bg-white rounded-xl shadow p-4 border-l-4 ${lowStock ? 'border-red-400' : 'border-green-400'} mt-2`}>
+            <div className={`rounded-xl shadow p-4 border-l-4 ${borderColor} mt-2 ${noStock ? 'bg-gray-50' : 'bg-white'}`}>
               <div className="flex justify-between items-center">
                 <div>
-                  <p className="font-bold text-gray-800">{c.name}</p>
+                  <p className={`font-bold ${noStock ? 'text-gray-400' : 'text-gray-800'}`}>{c.name}</p>
                   <p className="text-sm text-gray-500">{c.products.length}商品 / 在庫計{totalStock}個</p>
                 </div>
+                {noStock && <span className="text-gray-400 text-sm font-bold">在庫なし</span>}
                 {lowStock && <span className="text-red-500 text-sm font-bold">⚠️ 在庫少</span>}
               </div>
             </div>
