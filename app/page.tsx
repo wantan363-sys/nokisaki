@@ -71,26 +71,47 @@ export default function Home() {
         <p className="text-gray-400 text-center py-10">契約者がいません。追加してください。</p>
       )}
 
-      {contractors.map(c => {
-        const totalStock = c.products.reduce((s, p) => s + p.stock, 0)
-        const noStock = c.products.length > 0 && totalStock === 0
-        const lowStock = !noStock && c.products.some(p => p.stock <= 2)
-        const borderColor = noStock ? 'border-gray-300' : lowStock ? 'border-red-400' : 'border-green-400'
-        return (
-          <Link key={c.id} href={`/contractors/${c.id}`}>
-            <div className={`rounded-xl shadow p-4 border-l-4 ${borderColor} mt-2 ${noStock ? 'bg-gray-50' : 'bg-white'}`}>
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className={`font-bold ${noStock ? 'text-gray-400 line-through' : 'text-gray-800'}`}>{c.name}</p>
-                  <p className="text-sm text-gray-500">{c.products.length}商品 / 在庫計{totalStock}個</p>
+      {(() => {
+        const withStock = contractors.filter(c => c.products.reduce((s, p) => s + p.stock, 0) > 0)
+        const noStock = contractors.filter(c => c.products.length > 0 && c.products.reduce((s, p) => s + p.stock, 0) === 0)
+
+        const renderCard = (c: Contractor) => {
+          const totalStock = c.products.reduce((s, p) => s + p.stock, 0)
+          const isEmpty = totalStock === 0
+          const lowStock = !isEmpty && c.products.some(p => p.stock <= 2)
+          const borderColor = isEmpty ? 'border-gray-300' : lowStock ? 'border-red-400' : 'border-green-400'
+          return (
+            <Link key={c.id} href={`/contractors/${c.id}`}>
+              <div className={`rounded-xl shadow p-4 border-l-4 ${borderColor} mt-2 ${isEmpty ? 'bg-gray-50' : 'bg-white'}`}>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className={`font-bold ${isEmpty ? 'text-gray-400' : 'text-gray-800'}`}>{c.name}</p>
+                    <p className="text-sm text-gray-500">{c.products.length}商品 / 在庫計{totalStock}個</p>
+                  </div>
+                  {lowStock && <span className="text-red-500 text-sm font-bold">⚠️ 在庫少</span>}
                 </div>
-                {noStock && <span className="text-gray-400 text-sm font-bold">在庫なし</span>}
-                {lowStock && <span className="text-red-500 text-sm font-bold">⚠️ 在庫少</span>}
               </div>
-            </div>
-          </Link>
+            </Link>
+          )
+        }
+
+        return (
+          <>
+            {withStock.length > 0 && (
+              <div>
+                <p className="text-xs font-bold text-green-600 mb-1">▼ 在庫あり（{withStock.length}名）</p>
+                {withStock.map(renderCard)}
+              </div>
+            )}
+            {noStock.length > 0 && (
+              <div className="mt-4">
+                <p className="text-xs font-bold text-gray-400 mb-1">▼ 在庫なし（{noStock.length}名）</p>
+                {noStock.map(renderCard)}
+              </div>
+            )}
+          </>
         )
-      })}
+      })()}
     </div>
   )
 }
