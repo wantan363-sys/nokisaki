@@ -73,7 +73,7 @@ export default function Home() {
 
       {(() => {
         const withStock = contractors.filter(c => c.products.reduce((s, p) => s + p.stock, 0) > 0)
-        const noStock = contractors.filter(c => c.products.length > 0 && c.products.reduce((s, p) => s + p.stock, 0) === 0)
+        const noStock = contractors.filter(c => c.products.reduce((s, p) => s + p.stock, 0) === 0)
 
         const renderCard = (c: Contractor) => {
           const totalStock = c.products.reduce((s, p) => s + p.stock, 0)
