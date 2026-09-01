@@ -317,11 +317,25 @@ export default function ContractorDetail() {
                 </div>
               </div>
             ))}
-            <div className="border-t pt-2 mt-2 flex justify-between items-center">
-              <span className="text-sm font-bold text-gray-600">合計</span>
-              <span className="text-lg font-bold text-green-600">
-                ¥{history.reduce((sum, h) => sum + (h.amount ?? 0), 0).toLocaleString()}
-              </span>
+            <div className="border-t pt-2 mt-2 space-y-1">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-500">販売合計</span>
+                <span className="text-sm font-bold text-orange-500">
+                  ¥{history.filter(h => h.label === '販売').reduce((sum, h) => sum + (h.amount ?? 0), 0).toLocaleString()}
+                </span>
+              </div>
+              <div className="flex justify-between items-center bg-red-50 rounded-lg px-2 py-1">
+                <span className="text-sm font-bold text-red-600">💴 レジから抜き出し額</span>
+                <span className="text-lg font-bold text-red-600">
+                  ¥{history.filter(h => h.label === '半値買取' || h.label === '仕入れ').reduce((sum, h) => sum + (h.amount ?? 0), 0).toLocaleString()}
+                </span>
+              </div>
+              <div className="flex justify-between items-center pt-1">
+                <span className="text-sm font-bold text-gray-600">総合計</span>
+                <span className="text-lg font-bold text-green-600">
+                  ¥{history.reduce((sum, h) => sum + (h.amount ?? 0), 0).toLocaleString()}
+                </span>
+              </div>
             </div>
             <div className="border-t pt-3 mt-2 flex flex-wrap gap-4">
               <label className="flex items-center gap-2 cursor-pointer">
