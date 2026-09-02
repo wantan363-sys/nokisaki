@@ -19,7 +19,14 @@ export async function POST(req: Request) {
   const total = unit_price * quantity
 
   await supabaseAdmin.from('products').update({ stock: newStock }).eq('id', product_id)
-  await supabaseAdmin.from('purchases').insert({ product_id, quantity, unit_price, type })
+  await supabaseAdmin.from('purchases').insert({
+    product_id,
+    quantity,
+    unit_price,
+    type,
+    product_name: product.name,
+    contractor_id: product.contractor_id,
+  })
 
   return NextResponse.json({ stock: newStock, total })
 }

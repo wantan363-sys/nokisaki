@@ -36,6 +36,8 @@ export default function ContractorDetail() {
   const [restockQty, setRestockQty] = useState<{ [id: string]: string }>({})
   const [buyoutQty, setBuyoutQty] = useState<{ [id: string]: string }>({})
   const [procureQty, setProcureQty] = useState<{ [id: string]: string }>({})
+  const [editingPrice, setEditingPrice] = useState<string | null>(null)
+  const [priceInput, setPriceInput] = useState<{ [id: string]: string }>({})
 
   async function load(year = historyYear, month = historyMonth) {
     const res = await fetch('/api/contractors')
@@ -125,6 +127,18 @@ export default function ContractorDetail() {
     await load()
   }
 
+  async function savePrice(productId: string) {
+    const newPrice = parseInt(priceInput[productId])
+    if (isNaN(newPrice) || newPrice < 0) return alert('正しい金額を入力してください')
+    await fetch(`/api/products/${productId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ price: newPrice }),
+    })
+    setEditingPrice(null)
+    await load()
+  }
+
   async function purchase(productId: string, type: 'half_buyout' | 'procurement') {
     const qty = parseInt(type === 'half_buyout' ? (buyoutQty[productId] || '0') : (procureQty[productId] || '0'))
     if (!qty || qty <= 0) return alert('個数を入力してください')
@@ -195,7 +209,27 @@ export default function ContractorDetail() {
           <div className="flex justify-between items-center">
             <div>
               <span className="font-bold text-gray-800 text-sm">{p.name}</span>
-              <span className="text-xs text-gray-400 ml-2">{p.price.toLocaleString()}円</span>
+              {editingPrice === p.id ? (
+                <span className="inline-flex items-center gap-1 ml-2">
+                  <input
+                    type="number" min="0" autoFocus
+                    value={priceInput[p.id] ?? ''}
+                    onChange={e => setPriceInput(prev => ({ ...prev, [p.id]: e.target.value }))}
+                    onKeyDown={e => { if (e.key === 'Enter') savePrice(p.id); if (e.key === 'Escape') setEditingPrice(null) }}
+                    className="border rounded w-20 px-1 py-0.5 text-xs text-center"
+                  />
+                  <span className="text-xs text-gray-400">円</span>
+                  <button onClick={() => savePrice(p.id)} className="text-xs bg-green-500 text-white px-1.5 py-0.5 rounded">保存</button>
+                  <button onClick={() => setEditingPrice(null)} className="text-xs text-gray-400">✕</button>
+                </span>
+              ) : (
+                <button
+                  onClick={() => { setEditingPrice(p.id); setPriceInput(prev => ({ ...prev, [p.id]: String(p.price) })) }}
+                  className="text-xs text-gray-400 ml-2 underline"
+                >
+                  {p.price.toLocaleString()}円
+                </button>
+              )}
               <span className={`text-xs font-bold ml-2 ${p.stock <= 2 ? 'text-red-500' : 'text-green-600'}`}>
                 在庫{p.stock}個{p.stock <= 2 && '⚠️'}
               </span>

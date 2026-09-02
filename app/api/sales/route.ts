@@ -1,5 +1,4 @@
 import { supabaseAdmin } from '@/lib/supabase'
-import { sendLineMessage } from '@/lib/line'
 import { NextResponse } from 'next/server'
 
 export async function POST(req: Request) {
@@ -22,7 +21,13 @@ export async function POST(req: Request) {
 
   if (updateErr) return NextResponse.json({ error: updateErr }, { status: 500 })
 
-  await supabaseAdmin.from('sales').insert({ product_id, quantity, unit_price })
+  await supabaseAdmin.from('sales').insert({
+    product_id,
+    quantity,
+    unit_price,
+    product_name: product.name,
+    contractor_id: product.contractor_id,
+  })
 
   return NextResponse.json({ stock: newStock })
 }

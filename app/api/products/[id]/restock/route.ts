@@ -16,7 +16,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const newStock = product.stock + quantity
 
   await supabaseAdmin.from('products').update({ stock: newStock }).eq('id', id)
-  await supabaseAdmin.from('stock_additions').insert({ product_id: id, quantity })
+  await supabaseAdmin.from('stock_additions').insert({
+    product_id: id,
+    quantity,
+    product_name: product.name,
+    contractor_id: product.contractor_id,
+  })
 
   return NextResponse.json({ stock: newStock })
 }
