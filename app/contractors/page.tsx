@@ -1,0 +1,114 @@
+'use client'
+import { useEffect, useState } from 'react'
+import Link from 'next/link'
+
+type Product = { id: string; name: string; price: number; stock: number }
+type Contractor = { id: string; name: string; line_group_id: string | null; products: Product[] }
+
+export default function ContractorsPage() {
+  const [contractors, setContractors] = useState<Contractor[]>([])
+  const [sending, setSending] = useState(false)
+  const now = new Date()
+  const [reportYear, setReportYear] = useState(now.getFullYear())
+  const [reportMonth, setReportMonth] = useState(now.getMonth() + 1)
+
+  useEffect(() => {
+    fetch('/api/contractors').then(r => r.json()).then(setContractors)
+  }, [])
+
+  async function sendMonthlyReport() {
+    if (!confirm(`${reportYear}年${reportMonth}月のレポートを全グループに送信しますか？`)) return
+    setSending(true)
+    await fetch('/api/monthly-report', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ year: reportYear, month: reportMonth }),
+    })
+    setSending(false)
+    alert(`${reportMonth}月のレポートを送信しました！！`)
+  }
+
+  const withStock = contractors.filter(c => c.products.reduce((s, p) => s + p.stock, 0) > 0)
+  const noStock = contractors.filter(c => c.products.reduce((s, p) => s + p.stock, 0) === 0)
+
+  const renderCard = (c: Contractor) => {
+    const totalStock = c.products.reduce((s, p) => s + p.stock, 0)
+    const isEmpty = totalStock === 0
+    const lowStock = !isEmpty && c.products.some(p => p.stock <= 2)
+    const borderColor = isEmpty ? 'border-gray-300' : lowStock ? 'border-red-400' : 'border-green-400'
+    return (
+      <Link key={c.id} href={`/contractors/${c.id}`}>
+        <div className={`rounded-xl shadow p-4 border-l-4 ${borderColor} mt-2 ${isEmpty ? 'bg-gray-50' : 'bg-white'}`}>
+          <div className="flex justify-between items-center">
+            <div>
+              <p className={`font-bold ${isEmpty ? 'text-gray-400' : 'text-gray-800'}`}>{c.name}</p>
+              <p className="text-sm text-gray-500">{c.products.length}商品 / 在庫計{totalStock}個</p>
+            </div>
+            {lowStock && <span className="text-red-500 text-sm font-bold">⚠️ 在庫少</span>}
+          </div>
+        </div>
+      </Link>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <div>
+          <Link href="/" className="text-green-600 text-sm">← 販売画面に戻る</Link>
+          <h1 className="text-xl font-bold text-gray-800 mt-1">農家さん管理</h1>
+        </div>
+        <Link href="/contractors/new" className="bg-green-500 text-white px-3 py-2 rounded-lg text-sm font-bold">
+          ＋ 契約者追加
+        </Link>
+      </div>
+
+      {/* 月末レポート送信 */}
+      <div className="bg-white rounded-xl shadow px-4 py-3 flex items-center gap-2">
+        <span className="text-sm text-gray-600 font-bold shrink-0">月末レポート</span>
+        <select
+          value={reportYear}
+          onChange={e => setReportYear(Number(e.target.value))}
+          className="border rounded-lg px-2 py-1 text-sm text-gray-700"
+        >
+          {[now.getFullYear() - 1, now.getFullYear()].map(y => (
+            <option key={y} value={y}>{y}年</option>
+          ))}
+        </select>
+        <select
+          value={reportMonth}
+          onChange={e => setReportMonth(Number(e.target.value))}
+          className="border rounded-lg px-2 py-1 text-sm text-gray-700"
+        >
+          {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
+            <option key={m} value={m}>{m}月</option>
+          ))}
+        </select>
+        <button
+          onClick={sendMonthlyReport}
+          disabled={sending}
+          className="bg-blue-500 text-white px-3 py-1.5 rounded-lg text-sm font-bold disabled:opacity-50 ml-auto shrink-0"
+        >
+          {sending ? '送信中...' : '送信'}
+        </button>
+      </div>
+
+      {contractors.length === 0 && (
+        <p className="text-gray-400 text-center py-10">契約者がいません。追加してください。</p>
+      )}
+
+      {withStock.length > 0 && (
+        <div>
+          <p className="text-xs font-bold text-green-600 mb-1">▼ 在庫あり（{withStock.length}名）</p>
+          {withStock.map(renderCard)}
+        </div>
+      )}
+      {noStock.length > 0 && (
+        <div className="mt-4">
+          <p className="text-xs font-bold text-gray-400 mb-1">▼ 在庫なし（{noStock.length}名）</p>
+          {noStock.map(renderCard)}
+        </div>
+      )}
+    </div>
+  )
+}
