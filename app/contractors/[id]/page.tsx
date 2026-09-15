@@ -40,7 +40,7 @@ export default function ContractorDetail() {
   const [priceInput, setPriceInput] = useState<{ [id: string]: string }>({})
 
   async function load(year = historyYear, month = historyMonth) {
-    const res = await fetch('/api/contractors')
+    const res = await fetch('/api/contractors', { cache: 'no-store' })
     const data: Contractor[] = await res.json()
     setContractor(data.find(c => c.id === id) ?? null)
     const [hRes, sRes] = await Promise.all([

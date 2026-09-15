@@ -17,7 +17,7 @@ export default function Home() {
   const [procureQty, setProcureQty] = useState<{ [id: string]: string }>({})
 
   async function load() {
-    const res = await fetch('/api/contractors')
+    const res = await fetch('/api/contractors', { cache: 'no-store' })
     setContractors(await res.json())
   }
 

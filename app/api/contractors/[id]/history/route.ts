@@ -1,6 +1,8 @@
 import { supabaseAdmin } from '@/lib/supabase'
 import { NextResponse } from 'next/server'
 
+export const dynamic = 'force-dynamic'
+
 type ProductRef = { name: string; price?: number }
 
 function productName(ref: unknown, fallback: string | null): string {
