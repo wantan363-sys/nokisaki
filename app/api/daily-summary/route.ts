@@ -2,6 +2,12 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { sendLineMessage } from '@/lib/line'
 import { NextResponse } from 'next/server'
 
+function getProductField<T>(ref: unknown, field: string): T | undefined {
+  if (Array.isArray(ref)) return (ref[0] as Record<string, T> | undefined)?.[field]
+  if (ref && typeof ref === 'object') return (ref as Record<string, T>)[field]
+  return undefined
+}
+
 export async function GET() {
   return handler()
 }
@@ -11,7 +17,6 @@ export async function POST() {
 }
 
 async function handler() {
-  // JSTの今日の範囲（UTC+9）
   const now = new Date()
   const jstOffset = 9 * 60 * 60 * 1000
   const jstNow = new Date(now.getTime() + jstOffset)
@@ -38,13 +43,13 @@ async function handler() {
       .lt('sold_at', todayEnd.toISOString())
 
     for (const s of sales ?? []) {
-      const productName = (s.products as { name: string; price: number } | null)?.name ?? s.product_name ?? '（削除済み商品）'
-      const productPrice = (s.products as { name: string; price: number } | null)?.price
+      const pName = getProductField<string>(s.products, 'name') ?? s.product_name ?? '（削除済み商品）'
+      const pPrice = getProductField<number>(s.products, 'price')
       const price = s.unit_price
       const subtotal = s.quantity * price
       total += subtotal
-      const priceNote = productPrice && price !== productPrice ? `※値引 ${price.toLocaleString()}円` : `${price.toLocaleString()}円`
-      lines += `・[販売] ${productName}：${s.quantity}個 × ${priceNote} = ${subtotal.toLocaleString()}円\n`
+      const priceNote = pPrice && price !== pPrice ? `※値引 ${price.toLocaleString()}円` : `${price.toLocaleString()}円`
+      lines += `・[販売] ${pName}：${s.quantity}個 × ${priceNote} = ${subtotal.toLocaleString()}円\n`
     }
 
     // 買取・仕入れ
@@ -55,11 +60,11 @@ async function handler() {
       .lt('purchased_at', todayEnd.toISOString())
 
     for (const p of purchases ?? []) {
-      const productName = (p.products as { name: string } | null)?.name ?? p.product_name ?? '（削除済み商品）'
+      const pName = getProductField<string>(p.products, 'name') ?? p.product_name ?? '（削除済み商品）'
       const subtotal = p.quantity * p.unit_price
       total += subtotal
       const label = p.type === 'half_buyout' ? '半値買取' : '仕入れ'
-      lines += `・[${label}] ${productName}：${p.quantity}個 × ${p.unit_price.toLocaleString()}円 = ${subtotal.toLocaleString()}円\n`
+      lines += `・[${label}] ${pName}：${p.quantity}個 × ${p.unit_price.toLocaleString()}円 = ${subtotal.toLocaleString()}円\n`
     }
 
     if (!lines) continue
