@@ -203,7 +203,11 @@ export default function ContractorDetail() {
         <p className="text-gray-400 text-center py-10">商品がありません。追加してください。</p>
       )}
 
-      {contractor.products.map(p => (
+      {/* 在庫あり */}
+      {contractor.products.filter(p => p.stock > 0).length > 0 && (
+        <p className="text-xs font-bold text-green-600">▼ 在庫あり（{contractor.products.filter(p => p.stock > 0).length}商品）</p>
+      )}
+      {contractor.products.filter(p => p.stock > 0).map(p => (
         <div key={p.id} className={`bg-white rounded-xl shadow px-4 py-3 border-l-4 ${p.stock <= 2 ? 'border-red-400' : 'border-green-400'}`}>
           {/* 1行目：商品名・在庫・売れたボタン */}
           <div className="flex justify-between items-center">
@@ -294,6 +298,44 @@ export default function ContractorDetail() {
           </div>
         </div>
       ))}
+
+      {/* 在庫なし */}
+      {contractor.products.filter(p => p.stock === 0).length > 0 && (
+        <div className="mt-2">
+          <p className="text-xs font-bold text-gray-400 mb-1">▼ 在庫なし（{contractor.products.filter(p => p.stock === 0).length}商品）</p>
+          {contractor.products.filter(p => p.stock === 0).map(p => (
+            <div key={p.id} className="bg-gray-50 rounded-xl shadow px-4 py-3 border-l-4 border-gray-300 mb-2 opacity-70">
+              <div className="flex justify-between items-center">
+                <div>
+                  <span className="font-bold text-gray-500 text-sm">{p.name}</span>
+                  <span className="text-xs text-gray-400 ml-2">{p.price.toLocaleString()}円</span>
+                  <span className="text-xs font-bold text-gray-400 ml-2">在庫0個</span>
+                  <button
+                    onClick={async () => {
+                      if (!confirm(`「${p.name}」を削除しますか？`)) return
+                      await fetch(`/api/products/${p.id}`, { method: 'DELETE' })
+                      await load()
+                    }}
+                    className="text-xs text-red-400 ml-2"
+                  >
+                    🗑️
+                  </button>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <input type="number" min="1" placeholder="0"
+                    value={restockQty[p.id] || ''}
+                    onChange={e => setRestockQty(prev => ({ ...prev, [p.id]: e.target.value }))}
+                    className="border rounded-lg w-10 py-1 text-xs text-center" />
+                  <button onClick={() => restock(p.id)} disabled={restocking === p.id}
+                    className="bg-blue-500 text-white py-1 px-2 rounded-lg text-xs font-bold disabled:opacity-50">
+                    {restocking === p.id ? '...' : '📦補充'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* 履歴 */}
       <div className="bg-white rounded-xl shadow p-4">
